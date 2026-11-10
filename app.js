@@ -134,6 +134,7 @@ stopBtn.addEventListener("click", async () => {
     const task = taskInput.value.trim() || "Consulting Work";
     const logId = startTime.toISOString().replace(/[:.]/g, "-");
     try {
+        await setDoc(doc(db, "users", user.uid, "clients", client), {}, { merge: true });
         const taskRef = doc(db, "users", user.uid, "clients", client, "task", task);
         await setDoc(taskRef, {
             clientName: client,
@@ -154,6 +155,7 @@ stopBtn.addEventListener("click", async () => {
         clientInput.value = "";
         taskInput.value = "";
         alert(`Saved! Logged ${durationMinutes} minutes for ${client} (${task}).`);
+        stopBtn.classList.add("hidden");
     } catch (error) {
         console.error("Error saving log:", error);
         alert("Failed to save log to database: " + error.message);
