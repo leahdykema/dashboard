@@ -287,7 +287,6 @@ if (generatePdfBtn) {
 }
 
 // Fetch all clients and tasks from Firestore
-// Fetch all clients and tasks for the current user
 async function fetchAndPopulateClients() {
     clientSelect.innerHTML = '<option value="">-- Choose a Client --</option>';
     taskSelect.innerHTML = '<option value="">-- Choose a Task --</option>';
@@ -300,27 +299,27 @@ async function fetchAndPopulateClients() {
         return;
     }
     try {
-        const tasksQuery = collectionGroup(db, "task");
-        const tasksSnapshot = await getDocs(tasksQuery);
-        if (tasksSnapshot.empty) {
+        // Directly query the user's clients subcollection
+        const clientsRef = collection(db, "users", user.uid, "clients");
+        const clientsSnapshot = await getDocs(clientsRef);
+        if (clientsSnapshot.empty) {
             logsDisplayContainer.innerHTML = '<p style="color: red;">0 task logs found for your account.</p>';
             return;
         }
-        tasksSnapshot.forEach((docSnap) => {
-            const pathSegments = docSnap.ref.path.split('/');
-            // Confirm it matches users/{uid}/clients/{clientName}/task/{taskName}
-            if (pathSegments.includes(user.uid) && pathSegments.includes('clients') && pathSegments.includes('task')) {
-                const clientIndex = pathSegments.indexOf('clients');
-                const clientName = pathSegments[clientIndex + 1];
-                const taskName = docSnap.id;
-                const taskData = docSnap.data();
-
+        // Loop through each client document found under this user
+        for (const clientDoc of clientsSnapshot.docs) {
+            const clientName = clientDoc.id;
+            const tasksRef = collection(db, "users", user.uid, "clients", clientName, "task");
+            const tasksSnapshot = await getDocs(tasksRef);
+            tasksSnapshot.forEach((taskDoc) => {
+                const taskName = taskDoc.id;
+                const taskData = taskDoc.data();
                 if (!cachedClientsData[clientName]) {
                     cachedClientsData[clientName] = {};
                 }
                 cachedClientsData[clientName][taskName] = taskData;
-            }
-        });
+            });
+        }
         const clientNames = Object.keys(cachedClientsData);
         if (clientNames.length === 0) {
             logsDisplayContainer.innerHTML = '<p style="color: red;">0 task logs found for your account.</p>';
