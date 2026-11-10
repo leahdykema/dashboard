@@ -287,6 +287,7 @@ if (generatePdfBtn) {
 }
 
 // Fetch all clients and tasks from Firestore
+// Fetch all clients and tasks for the current user
 async function fetchAndPopulateClients() {
     clientSelect.innerHTML = '<option value="">-- Choose a Client --</option>';
     taskSelect.innerHTML = '<option value="">-- Choose a Task --</option>';
@@ -299,27 +300,33 @@ async function fetchAndPopulateClients() {
         return;
     }
     try {
-        const tasksQuery = collection(db, "users", user.uid, "clients");
-        const clientsSnapshot = await getDocs(tasksQuery);
-        if (clientsSnapshot.empty) {
+        const tasksQuery = collectionGroup(db, "task");
+        const tasksSnapshot = await getDocs(tasksQuery);
+        if (tasksSnapshot.empty) {
             logsDisplayContainer.innerHTML = '<p style="color: red;">0 task logs found for your account.</p>';
             return;
         }
-        // Loop through each client document to find their tasks
-        for (const clientDoc of clientsSnapshot.docs) {
-            const clientName = clientDoc.id;
-            const tasksSnapshot = await getDocs(collection(db, "users", user.uid, "clients", clientName, "task"));
-            tasksSnapshot.forEach((taskDoc) => {
-                const taskName = taskDoc.id;
-                const taskData = taskDoc.data();
+        tasksSnapshot.forEach((docSnap) => {
+            const pathSegments = docSnap.ref.path.split('/');
+            // Confirm it matches users/{uid}/clients/{clientName}/task/{taskName}
+            if (pathSegments.includes(user.uid) && pathSegments.includes('clients') && pathSegments.includes('task')) {
+                const clientIndex = pathSegments.indexOf('clients');
+                const clientName = pathSegments[clientIndex + 1];
+                const taskName = docSnap.id;
+                const taskData = docSnap.data();
+
                 if (!cachedClientsData[clientName]) {
                     cachedClientsData[clientName] = {};
                 }
                 cachedClientsData[clientName][taskName] = taskData;
-            });
+            }
+        });
+        const clientNames = Object.keys(cachedClientsData);
+        if (clientNames.length === 0) {
+            logsDisplayContainer.innerHTML = '<p style="color: red;">0 task logs found for your account.</p>';
+            return;
         }
         // Populate the Client dropdown
-        const clientNames = Object.keys(cachedClientsData);
         clientNames.forEach((clientName) => {
             const option = document.createElement("option");
             option.value = clientName;
@@ -329,6 +336,7 @@ async function fetchAndPopulateClients() {
         logsDisplayContainer.innerHTML = '<p>Select a client and task to view time entries.</p>';
     } catch (error) {
         logsDisplayContainer.innerHTML = `<p style="color: red;">Failed to load data: ${error.message}</p>`;
+        console.error("Fetch error:", error);
     }
 }
 
@@ -337,6 +345,8 @@ clientSelect.addEventListener("change", (e) => {
     const selectedClient = e.target.value;
     taskSelect.innerHTML = '<option value="">-- Choose a Task --</option>';
     logsDisplayContainer.innerHTML = '<p>Select a task to view time entries.</p>';
+    if (exportPdfSetupBtn) exportPdfSetupBtn.classList.add("hidden");
+    if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
     if (!selectedClient || !cachedClientsData[selectedClient]) {
         taskSelect.disabled = true;
         return;
@@ -351,35 +361,33 @@ clientSelect.addEventListener("change", (e) => {
     });
     taskSelect.disabled = false;
 });
-
 // Handle Task Dropdown Selection & Render Entry Cards
 if (taskSelect) {
     taskSelect.addEventListener("change", (e) => {
         const selectedClient = clientSelect.value;
         const selectedTask = e.target.value;
-
         if (!selectedTask || !logsDisplayContainer) {
             if (logsDisplayContainer) logsDisplayContainer.innerHTML = '<p>Select a task to view time entries.</p>';
             if (exportPdfSetupBtn) exportPdfSetupBtn.classList.add("hidden");
             if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
             return;
         }
-
         const taskData = cachedClientsData[selectedClient]?.[selectedTask];
         const entries = taskData?.entries || [];
-
         if (entries.length === 0) {
             logsDisplayContainer.innerHTML = `<p>No log entries found for <strong>${selectedTask}</strong>.</p>`;
             if (exportPdfSetupBtn) exportPdfSetupBtn.classList.add("hidden");
             return;
         }
-
         // Show PDF export button
         if (exportPdfSetupBtn) exportPdfSetupBtn.classList.remove("hidden");
-
-        entries.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-
-        // Render standard log view table (with IDs for UI viewing)
+        // Safe sort handling both Firestore timestamps and string/Date objects
+        entries.sort((a, b) => {
+            const timeA = a.startTime?.seconds ? a.startTime.seconds * 1000 : new Date(a.startTime).getTime();
+            const timeB = b.startTime?.seconds ? b.startTime.seconds * 1000 : new Date(b.startTime).getTime();
+            return timeB - timeA;
+        });
+        // Render standard log view table
         let tableHtml = `
             <h3>Logs for ${selectedClient} &mdash; ${selectedTask}</h3>
             <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
@@ -393,7 +401,6 @@ if (taskSelect) {
                 </thead>
                 <tbody>
         `;
-
         entries.forEach((entry) => {
             const start = entry.startTime?.seconds ? new Date(entry.startTime.seconds * 1000) : new Date(entry.startTime);
             const end = entry.endTime?.seconds ? new Date(entry.endTime.seconds * 1000) : new Date(entry.endTime);
@@ -401,12 +408,11 @@ if (taskSelect) {
                 <tr>
                     <td>${entry.id}</td>
                     <td><strong>${entry.durationMinutes} mins</strong></td>
-                    <td>${start.toLocaleString()}</td>
-                    <td>${end.toLocaleString()}</td>
+                    <td>${isNaN(start.getTime()) ? "N/A" : start.toLocaleString()}</td>
+                    <td>${isNaN(end.getTime()) ? "N/A" : end.toLocaleString()}</td>
                 </tr>
             `;
         });
-
         tableHtml += `</tbody></table>`;
         logsDisplayContainer.innerHTML = tableHtml;
     });
