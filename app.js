@@ -74,6 +74,7 @@ onAuthStateChanged(auth, (user) => {
         // Logged in: Hide login form, show dashboard
         if (loginView) loginView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
+        if (dashboardView) stopBtn.classList.add("hidden");
         if (authError) authError.textContent = "";
     } else {
         // Logged out: Show login form, hide dashboard
@@ -112,10 +113,12 @@ startBtn.addEventListener("click", () => {
     startBtn.style.opacity = "0.5";
     stopBtn.style.opacity = "1";
     alert("Timer started!");
+    stopBtn.classList.remove("hidden");
 });
 
 // Stop Timer & Save to Firestore
 stopBtn.addEventListener("click", async () => {
+    stopBtn.classList.add("hidden");
     if (!startTime) {
         alert("You need to start the timer first!");
         return;
@@ -173,12 +176,16 @@ backBtn.addEventListener("click", () => {
 if (exportPdfSetupBtn) {
     exportPdfSetupBtn.addEventListener("click", () => {
         if (pdfConfigPanel) pdfConfigPanel.classList.remove("hidden");
+        exportPdfSetupBtn.classList.add("hidden");
+        backBtn.classList.add("hidden");
     });
 }
 
 if (cancelPdfBtn) {
     cancelPdfBtn.addEventListener("click", () => {
         if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
+        exportPdfSetupBtn.classList.remove("hidden");
+        backBtn.classList.remove("hidden");
     });
 }
 
@@ -391,7 +398,7 @@ if (taskSelect) {
             <h3>Logs for ${selectedClient} &mdash; ${selectedTask}</h3>
             <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
                 <thead>
-                    <tr style="background-color: #f2f2f2;">
+                    <tr>
                         <th>Log ID</th>
                         <th>Duration</th>
                         <th>Start Time</th>
