@@ -22,7 +22,7 @@ import {
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const firebaseConfig = {
-    apiKey: "AIzaSyCWQ6_na40q8O-D1APRjEiWUMw6_tLqvjI",
+    apiKey: window.FIREBASE_API_KEY || "AIzaSyCWQ6_na40q8O-D1APRjEiWUMw6_tLqvjI",
     authDomain: "dashboard-868f7.firebaseapp.com",
     projectId: "dashboard-868f7",
     storageBucket: "dashboard-868f7.firebasestorage.app",
