@@ -120,13 +120,18 @@ stopBtn.addEventListener("click", async () => {
         alert("You need to start the timer first!");
         return;
     }
+    const user = auth.currentUser;
+    if (!user) {
+        alert("You must be signed in to save a log");
+        return;
+    }
     const endTime = new Date();
     const durationMinutes = Math.round((endTime - startTime) / 60000);
     const client = clientInput.value.trim() || "Client";
     const task = taskInput.value.trim() || "Consulting Work";
     const logId = startTime.toISOString().replace(/[:.]/g, "-");
     try {
-        const taskRef = doc(db, "clients", client, "task", task);
+        const taskRef = doc(db, "users", user.uid, "clients", client, "task", task);
         await setDoc(taskRef, {
             clientName: client,
             taskName: task,
@@ -230,7 +235,7 @@ if (generatePdfBtn) {
             <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">Project End Date:</strong> ${endDate}</p>
             <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">${pricingSummaryText}</strong></p>
             <br>
-            <table border="1" cellpadding="8" cellspacing="0" style="background-color: #fff; color: #111;"width: 100%; border-collapse: collapse; font-size: 14px;">
+            <table cellpadding="8" cellspacing="0" style="background-color: #fff; color: #111; width: 100%; border: 1; border-collapse: collapse; font-size: 14px;">
                 <thead>
                     <tr style="background-color: #eee; color: #111;">
                         <th style="background-color: #fff; color: #111;">Start Time</th>
@@ -255,7 +260,7 @@ if (generatePdfBtn) {
                 </tbody>
             </table>
             <br>
-            <div style="background-color: #fff; color: #111;" text-align: right; font-size: 16px; margin-top: 20px;">
+            <div style="background-color: #fff; color: #111; text-align: right; font-size: 16px; margin-top: 20px;">
                 <strong style="background-color: #fff; color: #111;">Total: $${grandTotal.toFixed(2)}</strong>
             </div>
         `;
@@ -288,25 +293,32 @@ async function fetchAndPopulateClients() {
     taskSelect.disabled = true;
     logsDisplayContainer.innerHTML = '<p style="color: blue;">Loading clients from database...</p>';
     cachedClientsData = {};
+    const user = auth.currentUser;
+    if (!user) {
+        logsDisplayContainer.innerHTML = '<p style="color: red;">Not logged in.</p>';
+        return;
+    }
     try {
-        const tasksSnapshot = await getDocs(collectionGroup(db, "task"));
-        if (tasksSnapshot.empty) {
-            logsDisplayContainer.innerHTML = '<p style="color: red;">Database connected, but 0 task logs found.</p>';
+        const tasksQuery = collection(db, "users", user.uid, "clients");
+        const clientsSnapshot = await getDocs(tasksQuery);
+        if (clientsSnapshot.empty) {
+            logsDisplayContainer.innerHTML = '<p style="color: red;">0 task logs found for your account.</p>';
             return;
         }
-        // Loop through every task document found
-        tasksSnapshot.forEach((docSnap) => {
-            // Extract the client name from the parent document path: clients -> [clientName] -> task -> [taskName]
-            const clientName = docSnap.ref.parent.parent.id;
-            const taskName = docSnap.id;
-            const taskData = docSnap.data();
-
-            if (!cachedClientsData[clientName]) {
-                cachedClientsData[clientName] = {};
-            }
-            cachedClientsData[clientName][taskName] = taskData;
-        });
-        // Populate the Client dropdown with the unique client names discovered
+        // Loop through each client document to find their tasks
+        for (const clientDoc of clientsSnapshot.docs) {
+            const clientName = clientDoc.id;
+            const tasksSnapshot = await getDocs(collection(db, "users", user.uid, "clients", clientName, "task"));
+            tasksSnapshot.forEach((taskDoc) => {
+                const taskName = taskDoc.id;
+                const taskData = taskDoc.data();
+                if (!cachedClientsData[clientName]) {
+                    cachedClientsData[clientName] = {};
+                }
+                cachedClientsData[clientName][taskName] = taskData;
+            });
+        }
+        // Populate the Client dropdown
         const clientNames = Object.keys(cachedClientsData);
         clientNames.forEach((clientName) => {
             const option = document.createElement("option");
@@ -314,13 +326,11 @@ async function fetchAndPopulateClients() {
             option.textContent = clientName;
             clientSelect.appendChild(option);
         });
-
         logsDisplayContainer.innerHTML = '<p>Select a client and task to view time entries.</p>';
     } catch (error) {
         logsDisplayContainer.innerHTML = `<p style="color: red;">Failed to load data: ${error.message}</p>`;
     }
 }
-
 
 // Handle Client Dropdown Selection
 clientSelect.addEventListener("change", (e) => {
