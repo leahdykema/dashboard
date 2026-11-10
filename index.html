@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en_US">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Leah Dykema">
+        <meta name="description" content="Leah Dykema's Time Keeper for Consultations">
+        <meta name="theme-color" content="#8bc3ff" id="theme-color-meta">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Time Tracker</title>
+        <style>
+            .hidden {
+                display: none !important;
+            }
+        </style>
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    </head>
+    <body>
+        <form id="login-view">
+            <h1>Sign In</h1>
+            <input type="email" id="email" placeholder="Email" rrequired>
+            <input type="password" id="password" placeholder="Password" required>
+            <p id="auth-error" style="color: #e00;"></p>
+            <button type="submit" id="login-btn">Log In</button>
+        </form>
+        <div id="dashboard-view" style="display: none;">
+            <header>
+                <h1>Time Tracker</h1>
+            </header>
+            <main>
+                <!-- Timer Form -->
+                <section id="timer-view">
+                    <h2>Log Time</h2>
+                    <input type="text" id="client" placeholder="Client Name">
+                    <input type="text" id="task" placeholder="Task">
+                    <button id="start-btn">Start Timer</button>
+                    <button id="stop-btn">Stop &amp; Save</button>
+                    <button id="logs-btn">View Logs</button>
+                </section>
+                <!-- Client Logs -->
+                <section id="logs-view" class="hidden">
+                    <h2>Clients</h2>
+                    <!-- Sidebar: Selectors -->
+                    <aside>
+                        <label for="client-select"><strong>Select Client:</strong></label>
+                        <select id="client-select">
+                            <option value="">-- Choose a Client --</option>
+                        </select>
+                        <label for="task-select"><strong>Select Task:</strong></label>
+                        <select id="task-select">
+                            <option value="">-- Choose a Task --</option>
+                        </select>
+                    </aside>
+                    <div id="logs-display-container" style="margin: auto; align-content: center; text-align: center;"></div>
+                    <!-- Export -->
+                    <div id="config-pdf" class="hidden">
+                        <h3 style="display: block;">Export Logs</h3>
+                        <div id="export">
+                            <label for="start-date">Start Date:</label>
+                            <input type="date" id="start-date" rrequired>
+                            <label for="end-date">Completion Date:</label>
+                            <input type="date" id="end-date" required>
+                            <label for="rate">Rate Type:</label>
+                            <select id="rate" required>
+                                <option value="" selected disabled>-- Select --</option>
+                                <option value="hourly">Hourly Rate</option>
+                                <option value="set">Set Rate</option>
+                            </select>
+                            <label for="amount">Amount:</label>
+                            <input type="number" id="amount" placeholder="12" required>
+                        </div>
+                        <button id="generate-pdf-btn">Generate PDF</button>
+                        <button id="cancel-export-btn">Cancel</button>
+                    </div>
+                    <button id="export-btn">Export</button>
+                    <button id="back-btn">Back to Timer</button>
+                </section>
+                <button id="logout-btn">Log Out</button>
+            </main>
+        </div>
+        <script type="module" src="app.js"></script>
+    </body>
+</html>

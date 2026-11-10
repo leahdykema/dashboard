@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: 404.html
+Disallow: index.html
+
+Sitemap: https://db.leahdykema.us/sitemap.xml
