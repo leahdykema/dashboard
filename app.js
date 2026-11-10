@@ -174,7 +174,6 @@ backBtn.addEventListener("click", () => {
     timerView.classList.remove("hidden");
 });
 
-
 if (exportPdfSetupBtn) {
     exportPdfSetupBtn.addEventListener("click", () => {
         if (pdfConfigPanel) pdfConfigPanel.classList.remove("hidden");
@@ -204,6 +203,10 @@ if (generatePdfBtn) {
         const endDate = pdfEndDateInput?.value || "N/A";
         const rateType = pdfRateTypeSelect?.value || "hourly";
         const rateAmount = parseFloat(pdfRateAmountInput?.value) || 0;
+        if (rateAmount <= 0) {
+            alert("Please enter a rate amount.");
+            return;
+        }
         const taskData = cachedClientsData[selectedClient]?.[selectedTask];
         const entries = taskData?.entries || [];
         if (entries.length === 0) {
@@ -214,20 +217,22 @@ if (generatePdfBtn) {
             alert("PDF library is still loading. Please wait a moment and try again.");
             return;
         }
-        // Calculate total minutes and total cost safely
+        // Total minutes, the same numbers shown in the table
         let totalMinutes = 0;
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
             totalMinutes += Number(entry.durationMinutes) || 0;
         });
         const totalHours = totalMinutes / 60;
+        const timeText = `${Math.floor(totalMinutes / 60)} hr ${totalMinutes % 60} min`;
+
         let grandTotal = 0;
         let pricingSummaryText = "";
-        if (rateType === "hourly") {
-            grandTotal = totalHours * rateAmount;
-            pricingSummaryText = `Hourly Rate: $${rateAmount.toFixed(2)}/hr | Total Time: ${totalHours.toFixed(2)} hrs`;
-        } else {
+        if (rateType === "set") {
             grandTotal = rateAmount;
-            pricingSummaryText = `Fixed Rate $${grandTotal.toFixed(2)}`;
+            pricingSummaryText = `Set Rate: $${rateAmount.toFixed(2)}`;
+        } else {
+            grandTotal = totalHours * rateAmount;
+            pricingSummaryText = `Hourly Rate: $${rateAmount.toFixed(2)}/hr | Total Time: ${timeText}`;
         }
         // Build HTML layout for the PDF (Excluding Log IDs)
         const printableDiv = document.createElement("div");
@@ -238,7 +243,7 @@ if (generatePdfBtn) {
         printableDiv.style.width = "700px";
         let pdfHtml = `
             <h1 style="margin-bottom: 5px; background-color: #fff; color: #111;">${selectedClient}</h1>
-            <h3 style="margin-top: 0; background-color: #fff; color: #111;">Task: ${selectedTask}</h3>
+            <h3 style="margin-top: 0; background-color: #fff; color: #111;">${selectedTask}</h3>
             <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
             <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">Project Start Date:</strong> ${startDate}</p>
             <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">Project End Date:</strong> ${endDate}</p>
@@ -288,6 +293,9 @@ if (generatePdfBtn) {
             // Clean up the temporary element
             document.body.removeChild(printableDiv);
             if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
+            // Bring the buttons back
+            exportPdfSetupBtn.classList.remove("hidden");
+            backBtn.classList.remove("hidden");
         }).catch((err) => {
             document.body.removeChild(printableDiv);
             alert("Error generating PDF: " + err);
