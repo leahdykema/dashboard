@@ -85,7 +85,6 @@ if (savedStartTime) {
 // Listen for login/logout state changes automatically
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Logged in: Hide login form, show dashboard
         if (loginView) loginView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
         if (logsView) logsView.classList.add("hidden");
@@ -97,7 +96,6 @@ onAuthStateChanged(auth, (user) => {
             stopBtn.classList.add("hidden");
         }
     } else {
-        // Logged out: Show login form, hide dashboard
         if (loginView) loginView.style.display = "block";
         if (dashboardView) dashboardView.style.display = "none";
     }
@@ -266,13 +264,15 @@ if (generatePdfBtn) {
             grandTotal = totalHours * rateAmount;
             pricingSummaryText = `Hourly Rate: $${rateAmount.toFixed(2)}/hr | Total Time: ${timeText}`;
         }
-        // Build HTML layout for the PDF (Excluding Log IDs)
+        // PDF (Excluding Log IDs)
         const printableDiv = document.createElement("div");
         printableDiv.style.padding = "20px";
         printableDiv.style.fontFamily = "Arial, sans-serif";
         printableDiv.style.color = "#111";
         printableDiv.style.background = "#ffffff";
-        printableDiv.style.width = "700px";
+        printableDiv.style.width = "100%";
+        printableDiv.style.maxWidth = "700px";
+        printableDiv.style.boxSizing = "border-box";
         let pdfHtml = `
             <h1 style="margin-bottom: 5px; background-color: #fff; color: #111;">${selectedClient}</h1>
             <h3 style="margin-top: 0; background-color: #fff; color: #111;">${selectedTask}</h3>
