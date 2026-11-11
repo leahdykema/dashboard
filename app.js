@@ -88,6 +88,8 @@ onAuthStateChanged(auth, (user) => {
         // Logged in: Hide login form, show dashboard
         if (loginView) loginView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
+        if (logsView) logsView.classList.remove("hidden");
+        if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
         if (authError) authError.textContent = "";
         if (startTime) {
             stopBtn.classList.remove("hidden");
@@ -120,7 +122,9 @@ if (loginView) {
 // Handle sign out
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-        signOut(auth).catch((error) => console.error("Sign out error:", error));
+        signOut(auth).then(() => {
+            window.location.reload();
+        }).catch((error) => console.error("Sign out error:", error));
     });
 }
 
