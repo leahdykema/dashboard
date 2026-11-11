@@ -68,14 +68,32 @@ let cachedClientsData = {};
 
 stopBtn.style.opacity = "0.5";
 
+const savedStartTime = localStorage.getItem("active_timer_start");
+const savedClient = localStorage.getItem("active_timer_client");
+const savedTask = localStorage.getItem("active_timer_task");
+
+if (savedStartTime) {
+    startTime = new Date(savedStartTime);
+    startBtn.disabled = true;
+    startBtn.style.opacity = "0.5";
+    stopBtn.style.opacity = "1";
+    stopBtn.classList.remove("hidden");
+    if (clientInput && savedClient) clientInput.value = savedClient;
+    if (taskInput && savedTask) taskInput.value = savedTask;
+}
+
 // Listen for login/logout state changes automatically
 onAuthStateChanged(auth, (user) => {
     if (user) {
         // Logged in: Hide login form, show dashboard
         if (loginView) loginView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
-        if (dashboardView) stopBtn.classList.add("hidden");
         if (authError) authError.textContent = "";
+        if (startTime) {
+            stopBtn.classList.remove("hidden");
+        } else {
+            stopBtn.classList.add("hidden");
+        }
     } else {
         // Logged out: Show login form, hide dashboard
         if (loginView) loginView.style.display = "block";
@@ -109,6 +127,11 @@ if (logoutBtn) {
 // Start Timer
 startBtn.addEventListener("click", () => {
     startTime = new Date();
+    const clientVal = clientInput.value.trim();
+    const taskVal = taskInput.value.trim();
+    localStorage.setItem("active_timer_start", startTime.toISOString());
+    localStorage.setItem("active_timer_client", clientVal);
+    localStorage.setItem("active_timer_task", taskVal);
     startBtn.disabled = true;
     startBtn.style.opacity = "0.5";
     stopBtn.style.opacity = "1";
@@ -126,6 +149,7 @@ stopBtn.addEventListener("click", async () => {
     const user = auth.currentUser;
     if (!user) {
         alert("You must be signed in to save a log");
+        stopBtn.classList.remove("hidden");
         return;
     }
     const endTime = new Date();
@@ -147,6 +171,9 @@ stopBtn.addEventListener("click", async () => {
                 durationMinutes: durationMinutes
             })
         }, { merge: true });
+        localStorage.removeItem("active_timer_start");
+        localStorage.removeItem("active_timer_client");
+        localStorage.removeItem("active_timer_task");
         // Reset UI
         startTime = null;
         startBtn.disabled = false;
@@ -159,6 +186,7 @@ stopBtn.addEventListener("click", async () => {
     } catch (error) {
         console.error("Error saving log:", error);
         alert("Failed to save log to database: " + error.message);
+        stopBtn.classList.remove("hidden");
     }
 });
 
@@ -424,8 +452,8 @@ if (taskSelect) {
                 <tr>
                     <td>${entry.id}</td>
                     <td><strong>${entry.durationMinutes} mins</strong></td>
-                    <td>${isNaN(start.getTime()) ? "N/A" : start.toLocaleString()}</td>
-                    <td>${isNaN(end.getTime()) ? "N/A" : end.toLocaleString()}</td>
+                    <td>${start.toLocaleString()}</td>
+                    <td>${end.toLocaleString()}</td>
                 </tr>
             `;
         });
