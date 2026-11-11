@@ -88,7 +88,7 @@ onAuthStateChanged(auth, (user) => {
         // Logged in: Hide login form, show dashboard
         if (loginView) loginView.style.display = "none";
         if (dashboardView) dashboardView.style.display = "block";
-        if (logsView) logsView.classList.remove("hidden");
+        if (logsView) logsView.classList.add("hidden");
         if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
         if (authError) authError.textContent = "";
         if (startTime) {
