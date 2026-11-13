@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="author" content="Leah Dykema">
         <meta name="description" content="Leah Dykema's Time Keeper for Consultations">
-        <meta name="theme-color" content="#8bc3ff" id="theme-color-meta">
+        <meta name="theme-color" content="#000" id="theme-color-meta">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -27,13 +27,17 @@
     </head>
     <body>
         <form id="login-view">
-            <h1>Sign In</h1>
+            <h1>Sign In or Create an Account</h1>
+            <p id="auth-info" style="color: #0a0; text-align: center;"></p>
+            <p id="auth-error" style="color: #f00; text-align: center;"></p>
             <input type="email" id="email" placeholder="Email" rrequired>
             <input type="password" id="password" placeholder="Password" required>
-            <p id="auth-error" style="color: #f00; text-align: center;"></p>
-            <button type="submit" id="login-btn">Log In</button>
-            <p style="text-align: center; opacity: 70%;">This page is an internal dashboard for authorized users only&#46;</p>
-            <p style="text-align: center; opacity: 70%;">Version 1&#46;0&#46;0</p>
+            <button type="button" id="forgot-btn">Forgot Password</button>
+            <div class="auth-actions">
+                <button type="submit" id="login-btn">Log In</button>
+                <button type="button" id="sign-up-btn">Sign Up</button>
+            </div>
+            <p style="text-align: center; opacity: 70%;"><a href="privacy.html">Privacy Policy</a> Version 2&#46;0&#46;0</p>
         </form>
         <div id="dashboard-view" style="display: none;">
             <header>
@@ -48,6 +52,7 @@
                     <button id="start-btn">Start Timer</button>
                     <button id="stop-btn">Stop &amp; Save</button>
                     <button id="logs-btn">View Logs</button>
+                    <button id="account-btn">Manage Account</button>
                 </section>
                 <!-- Client Logs -->
                 <section id="logs-view" class="hidden">
@@ -85,9 +90,19 @@
                         <button id="cancel-export-btn">Cancel</button>
                     </div>
                     <button id="export-btn">Export</button>
-                    <button id="back-btn">Back to Timer</button>
                 </section>
-                <button id="logout-btn">Log Out</button>
+                <!-- Account -->
+                <section id="account-view" class="hidden">
+                    <h2>Account</h2>
+                    <h3 style="text-align: center;">Current email: <strong id="account-email"></strong></h3>
+                    <input type="email" id="new-email" placeholder="New email" autocomplete="email">
+                    <input type="password" id="current-password" placeholder="Current password" autocomplete="current-password">
+                    <p id="account-msg" style="text-align: center;"></p>
+                    <button id="update-email-btn">Update Email</button>
+                    <button id="logout-btn">Log Out</button>
+                </section>
+                <!-- Navigation -->
+                <button id="back-btn">Back to Timer</button>
             </main>
         </div>
         <!-- Developer file -->

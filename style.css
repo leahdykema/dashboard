@@ -16,17 +16,18 @@
         transition: all 200ms ease-in-out;
     }
 
+    a {
+        color: #111;
+        text-decoration: none;
+        transition: all 200ms ease-in-out;
+    }
+
     #login-view {
         background: rgba(255,255,255,0.6);
     }
 
     #dashboard-view {
         background: rgba(255,255,255,0.6);
-    }
-
-    alert {
-        background-color: #ddd;
-        color: #111;
     }
 
     @media (hover: hover) {
@@ -56,9 +57,10 @@
         transition: all 200ms ease-in-out;
     }
 
-    alert {
-        background-color: #111;
-        color: #ddd;
+    a {
+        color: #fff;
+        text-decoration: none;
+        transition: all 200ms ease-in-out;
     }
 
     #login-view {
@@ -70,6 +72,8 @@
     }
 
     @media (hover: hover) {
+
+
         button:hover,
         button:focus {
             background-color: #00a;
@@ -131,12 +135,17 @@ select {
 #password,
 #client,
 #task,
+#new-email,
+#current-password,
+#sign-up-btn,
 #login-btn,
 #logout-btn,
 #start-btn,
 #stop-btn,
 #back-btn,
 #logs-btn,
+#account-btn,
+#update-email-btn,
 #export-btn,
 #generate-pdf-btn,
 #cancel-export-btn {
@@ -146,6 +155,32 @@ select {
     padding: 5px;
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.auth-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+    margin: 1em auto;
+}
+
+.auth-actions #login-btn,
+.auth-actions #sign-up-btn {
+    margin: 0;
+    width: 5em;
+    text-align: center;
+}
+
+#forgot-btn {
+    display: block;
+    margin: 0.5em auto;
+    background: none;
+    box-shadow: none;
+    text-decoration: none;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 200ms ease-in-out;
 }
 
 #logs-view {
@@ -188,4 +223,18 @@ aside select,
     padding: 5px;
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+@media (hover: hover) {
+    a:hover,
+    a:focus {
+        color: #00f;
+        text-decoration: underline;
+    }
+
+    #forgot-btn:hover,
+    #forgot-btn:focus {
+        opacity: 0.5;
+        text-decoration: underline;
+    }
 }

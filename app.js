@@ -3,6 +3,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import {
     getAuth,
     signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    createUserWithEmailAndPassword,
+    EmailAuthProvider,
     onAuthStateChanged,
     signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -35,6 +38,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 // DOM Elements
+const authInfo = document.getElementById("auth-info");
 const loginView = document.getElementById("login-view");
 const timerView = document.getElementById("timer-view");
 const logsView = document.getElementById("logs-view");
@@ -43,7 +47,9 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const authError = document.getElementById("auth-error");
 const loginBtn = document.getElementById("login-btn");
+const signupBtn = document.getElementById("signup-btn");
 const logoutBtn = document.getElementById("logout-btn");
+const forgotBtn = document.getElementById("forgot-btn");
 const startBtn = document.getElementById("start-btn");
 const stopBtn = document.getElementById("stop-btn");
 const logsBtn = document.getElementById("logs-btn");
@@ -62,6 +68,14 @@ const pdfStartDateInput = document.getElementById("start-date");
 const pdfEndDateInput = document.getElementById("end-date");
 const pdfRateTypeSelect = document.getElementById("rate");
 const pdfRateAmountInput = document.getElementById("amount");
+const accountView = document.getElementById("account-view");
+const accountBtn = document.getElementById("account-btn");
+const accountEmailText = document.getElementById("account-email");
+const newEmailInput = document.getElementById("new-email");
+const currentPasswordInput = document.getElementById("current-password");
+const updateEmailBtn = document.getElementById("update-email-btn");
+const accountMsg = document.getElementById("account-msg");
+
 
 let startTime = null;
 let cachedClientsData = {};
@@ -89,6 +103,8 @@ onAuthStateChanged(auth, (user) => {
         if (dashboardView) dashboardView.style.display = "block";
         if (logsView) logsView.classList.add("hidden");
         if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
+        if (accountView) accountView.classList.add("hidden");
+        backBtn.classList.add("hidden");
         if (authError) authError.textContent = "";
         if (startTime) {
             stopBtn.classList.remove("hidden");
@@ -117,12 +133,64 @@ if (loginView) {
     });
 }
 
+// Handle account creation
+if (signupBtn) {
+    signupBtn.addEventListener("click", async () => {
+        if (authError) authError.textContent = "";
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        if (!email || !password) {
+            authError.textContent = "Enter an email and a password (6+ characters and at least one of the following: number, uppercase letter, lowercase letter, and a unique symbol).";
+            return;
+        }
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            const messages = {
+                "auth/email-already-in-use": "That email already has an account. Use Log In.",
+                "auth/weak-password": "Password must be at least 6 characters and at least one of the following: number, uppercase letter, lowercase letter, and a unique symbol.",
+                "auth/invalid-email": "That doesn't look like a valid email.",
+                "auth/operation-not-allowed": "Email/password sign-up isn't enabled in Firebase.",
+                "auth/admin-restricted-operation": "Sign-up is turned off in Firebase."
+            };
+            authError.textContent = messages[error.code] || `Sign-up failed (${error.code || "unknown"}).`;
+            console.error("Sign-up failed:", error.code, error.message);
+        }
+    });
+}
+
 // Handle sign out
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
         signOut(auth).then(() => {
             window.location.reload();
         }).catch((error) => console.error("Sign out error:", error));
+    });
+}
+
+// Forgot password
+if (forgotBtn) {
+    forgotBtn.addEventListener("click", async () => {
+        if (authError) authError.textContent = "";
+        if (authInfo) authInfo.textContent = "";
+        const email = emailInput.value.trim();
+        if (!email) {
+            authError.textContent = "Type your account email above first, then click Forgot Password.";
+            return;
+        }
+        try {
+            await sendPasswordResetEmail(auth, email);
+            authInfo.textContent = "A reset password request has been sent to your email. Be sure to check your spam folder if you do not find it in your inbox shortly.";
+        } catch (error) {
+            const messages = {
+                "auth/invalid-email": "Invalid Email Address.",
+                "auth/missing-email": "Type your account email above first.",
+                "auth/too-many-requests": "Too many attempts. Wait a few minutes and try again.",
+                "auth/network-request-failed": "Network error. Check your connection and try again."
+            };
+            authError.textContent = messages[error.code] || `Couldn't send the reset email (${error.code || "unknown"}).`;
+            console.error("Password reset failed:", error.code, error.message);
+        }
     });
 }
 
@@ -192,15 +260,28 @@ stopBtn.addEventListener("click", async () => {
     }
 });
 
-// Switch between Dashboard and Logs View
 logsBtn.addEventListener("click", async () => {
     timerView.classList.add("hidden");
     logsView.classList.remove("hidden");
+    backBtn.classList.remove("hidden");
     await fetchAndPopulateClients();
+});
+
+accountBtn.addEventListener("click", () => {
+    const user = auth.currentUser;
+    accountEmailText.textContent = user ? user.email : "";
+    newEmailInput.value = "";
+    currentPasswordInput.value = "";
+    showAccountMsg("", true);
+    timerView.classList.add("hidden");
+    accountView.classList.remove("hidden");
+    backBtn.classList.remove("hidden");
 });
 
 backBtn.addEventListener("click", () => {
     logsView.classList.add("hidden");
+    accountView.classList.add("hidden");
+    backBtn.classList.add("hidden");
     timerView.classList.remove("hidden");
 });
 
@@ -477,5 +558,57 @@ if (taskSelect) {
         });
         tableHtml += `</tbody></table>`;
         logsDisplayContainer.innerHTML = tableHtml;
+    });
+}
+
+// ----- Account Management -----
+// Change Account Email
+function showAccountMsg(text, ok) {
+    accountMsg.textContent = text;
+    accountMsg.style.color = ok ? "#0a0" : "#f00";
+}
+
+if (updateEmailBtn) {
+    updateEmailBtn.addEventListener("click", async () => {
+        showAccountMsg("", true);
+        const user = auth.currentUser;
+        const newEmail = newEmailInput.value.trim();
+        const password = currentPasswordInput.value;
+        if (!user) {
+            showAccountMsg("You must be signed in.", false);
+            return;
+        }
+        if (!newEmail || !password) {
+            showAccountMsg("Enter the new email and your current password.", false);
+            return;
+        }
+        if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+            showAccountMsg("That's already your email.", false);
+            return;
+        }
+        updateEmailBtn.disabled = true;
+        try {
+            // Firebase requires a recent login for this, so confirm the password first
+            const credential = EmailAuthProvider.credential(user.email, password);
+            await reauthenticateWithCredential(user, credential);
+            // Sends a confirmation link to the NEW address. Email changes only after it's clicked.
+            await verifyBeforeUpdateEmail(user, newEmail);
+            currentPasswordInput.value = "";
+            showAccountMsg(`Confirmation link sent to ${newEmail}. Your email won't change until you click it. After that, log in with the new email.`, true);
+        } catch (error) {
+            const messages = {
+                "auth/wrong-password": "Current password is incorrect.",
+                "auth/invalid-credential": "Current password is incorrect.",
+                "auth/invalid-email": "That doesn't look like a valid email.",
+                "auth/email-already-in-use": "That email is already used by another account.",
+                "auth/too-many-requests": "Too many attempts. Wait a few minutes and try again.",
+                "auth/requires-recent-login": "Please log out, log back in, and try again.",
+                "auth/network-request-failed": "Network error. Check your connection and try again."
+            };
+            showAccountMsg(messages[error.code] || `Couldn't update email (${error.code || "unknown"}).`, false);
+            console.error("Email update failed:", error.code, error.message);
+        } finally {
+            updateEmailBtn.disabled = false;
+        }
     });
 }
