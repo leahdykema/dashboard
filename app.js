@@ -243,7 +243,7 @@ if (generatePdfBtn) {
             alert("No entries to export.");
             return;
         }
-        if (typeof html2pdf === "undefined") {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
             alert("PDF library is still loading. Please wait a moment and try again.");
             return;
         }
@@ -264,74 +264,88 @@ if (generatePdfBtn) {
             grandTotal = totalHours * rateAmount;
             pricingSummaryText = `Hourly Rate: $${rateAmount.toFixed(2)}/hr | Total Time: ${timeText}`;
         }
-        // PDF (Excluding Log IDs)
-        const printableDiv = document.createElement("div");
-        printableDiv.style.padding = "20px";
-        printableDiv.style.fontFamily = "Arial, sans-serif";
-        printableDiv.style.color = "#111";
-        printableDiv.style.background = "#ffffff";
-        printableDiv.style.width = "100%";
-        printableDiv.style.maxWidth = "700px";
-        printableDiv.style.boxSizing = "border-box";
-        let pdfHtml = `
-            <h1 style="margin-bottom: 5px; background-color: #fff; color: #111;">${selectedClient}</h1>
-            <h3 style="margin-top: 0; background-color: #fff; color: #111;">${selectedTask}</h3>
-            <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
-            <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">Project Start Date:</strong> ${startDate}</p>
-            <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">Project End Date:</strong> ${endDate}</p>
-            <p style="background-color: #fff; color: #111;"><strong style="background-color: #fff; color: #111;">${pricingSummaryText}</strong></p>
-            <br>
-            <table cellpadding="8" cellspacing="0" style="background-color: #fff; color: #111; width: 100%; border: 1; border-collapse: collapse; font-size: 14px;">
-                <thead>
-                    <tr style="background-color: #eee; color: #111;">
-                        <th style="background-color: #fff; color: #111;">Start Time</th>
-                        <th style="background-color: #fff; color: #111;">End Time</th>
-                        <th style="background-color: #fff; color: #111;">Duration</th>
-                    </tr>
-                </thead>
-                <tbody style="background-color: #fff; color: #111;">
-        `;
-        entries.forEach((entry) => {
-            const start = entry.startTime?.seconds ? new Date(entry.startTime.seconds * 1000) : new Date(entry.startTime);
-            const end = entry.endTime?.seconds ? new Date(entry.endTime.seconds * 1000) : new Date(entry.endTime);
-            pdfHtml += `
-                    <tr style="background-color: #fff; color: #111;">
-                        <td style="background-color: #fff; color: #111;">${isNaN(start.getTime()) ? "N/A" : start.toLocaleString()}</td>
-                        <td style="background-color: #fff; color: #111;">${isNaN(end.getTime()) ? "N/A" : end.toLocaleString()}</td>
-                        <td style="background-color: #fff; color: #111;">${entry.durationMinutes} mins</td>
-                    </tr>
-            `;
-        });
-        pdfHtml += `
-                </tbody>
-            </table>
-            <br>
-            <div style="background-color: #fff; color: #111; text-align: right; font-size: 16px; margin-top: 20px;">
-                <strong style="background-color: #fff; color: #111;">Total: $${grandTotal.toFixed(2)}</strong>
-            </div>
-        `;
-        printableDiv.innerHTML = pdfHtml;
-        // Temporarily attach to document body so html2canvas can measure/render it properly
-        document.body.appendChild(printableDiv);
-        // Trigger PDF generation and download
-        const opt = {
-            margin: 0.5,
-            filename: `${selectedClient}_${selectedTask}_Report.pdf`.replace(/\s+/g, "_"),
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        const clean = (s) => String(s).replace(/[\u202f\u00a0]/g, " ");
+        const fmt = (v) => {
+            const d = v?.seconds ? new Date(v.seconds * 1000) : new Date(v);
+            return isNaN(d.getTime()) ? "N/A" : clean(d.toLocaleString());
         };
-        html2pdf().from(printableDiv).set(opt).save().then(() => {
-            // Clean up the temporary element
-            document.body.removeChild(printableDiv);
-            if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
-            // Bring the buttons back
-            exportPdfSetupBtn.classList.remove("hidden");
-            backBtn.classList.remove("hidden");
-        }).catch((err) => {
-            document.body.removeChild(printableDiv);
-            alert("Error generating PDF: " + err);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: "pt", format: "letter" });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const margin = 54;
+        const colStart = margin;
+        const colEnd = margin + 200;
+        const colDur = pageW - margin;
+        const rowH = 24;
+        let y = margin;
+        pdf.setTextColor(17, 17, 17);
+        // Title block
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(22);
+        pdf.text(clean(selectedClient), pageW / 2, y + 16, { align: "center", maxWidth: pageW - margin * 2 });
+        y += 38;
+        pdf.setFontSize(13);
+        pdf.text(clean(selectedTask), pageW / 2, y, { align: "center", maxWidth: pageW - margin * 2 });
+        y += 14;
+        pdf.setDrawColor(200, 200, 200);
+        pdf.line(margin, y, pageW - margin, y);
+        y += 24;
+        // Details
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Project Start Date:", margin, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(clean(startDate), margin + 118, y);
+        y += 20;
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Project End Date:", margin, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(clean(endDate), margin + 118, y);
+        y += 20;
+        pdf.setFont("helvetica", "bold");
+        const summaryLines = pdf.splitTextToSize(clean(pricingSummaryText), pageW - margin * 2);
+        pdf.text(summaryLines, margin, y);
+        y += summaryLines.length * 16 + 14;
+        const drawHeader = () => {
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(11);
+            pdf.text("Start Time", colStart, y);
+            pdf.text("End Time", colEnd, y);
+            pdf.text("Duration", colDur, y, { align: "right" });
+            pdf.setDrawColor(150, 150, 150);
+            pdf.line(margin, y + 6, pageW - margin, y + 6);
+            y += rowH;
+            pdf.setFont("helvetica", "normal");
+        };
+        drawHeader();
+        entries.forEach((entry) => {
+            if (y > pageH - margin - 50) {
+                pdf.addPage();
+                y = margin;
+                drawHeader();
+            }
+            pdf.setFontSize(11);
+            pdf.text(fmt(entry.startTime), colStart, y);
+            pdf.text(fmt(entry.endTime), colEnd, y);
+            pdf.text(`${entry.durationMinutes} mins`, colDur, y, { align: "right" });
+            pdf.setDrawColor(225, 225, 225);
+            pdf.line(margin, y + 7, pageW - margin, y + 7);
+            y += rowH;
         });
+        if (y > pageH - margin - 40) {
+            pdf.addPage();
+            y = margin;
+        }
+        y += 14;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.text(`Total: $${grandTotal.toFixed(2)}`, pageW - margin, y, { align: "right" });
+        pdf.save(`${selectedClient}_${selectedTask}_Report.pdf`.replace(/\s+/g, "_"));
+        // Close the export panel and bring the buttons back
+        if (pdfConfigPanel) pdfConfigPanel.classList.add("hidden");
+        exportPdfSetupBtn.classList.remove("hidden");
+        backBtn.classList.remove("hidden");
     });
 }
 
