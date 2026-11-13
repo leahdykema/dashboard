@@ -169,19 +169,27 @@ if (logoutBtn) {
 }
 
 // Forgot password
+// Shows on the login screen if the button can't be found
+if (!forgotBtn && authError) {
+    authError.textContent = 'Forgot password button not found. Its id in index.html must be exactly "forgot-btn".';
+}
+
 if (forgotBtn) {
     forgotBtn.addEventListener("click", async () => {
+        const setInfo = (text) => { if (authInfo) authInfo.textContent = text; };
         if (authError) authError.textContent = "";
-        if (authInfo) authInfo.textContent = "";
+        setInfo("");
         const email = emailInput.value.trim();
         if (!email) {
             authError.textContent = "Type your account email above first, then click Forgot Password.";
             return;
         }
+        setInfo("Sending...");
         try {
             await sendPasswordResetEmail(auth, email);
-            authInfo.textContent = "A reset password request has been sent to your email. Be sure to check your spam folder if you do not find it in your inbox shortly.";
+            setInfo("A reset password request has been sent to your email. Be sure to check your spam folder if you do not find it in your inbox shortly.");
         } catch (error) {
+            setInfo("");
             const messages = {
                 "auth/invalid-email": "Invalid Email Address.",
                 "auth/missing-email": "Type your account email above first.",
